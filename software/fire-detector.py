@@ -2,19 +2,18 @@ import cv2
 import numpy as np
 
 # Load video
-cap = cv2.VideoCapture("fire6.mov")
+cap = cv2.VideoCapture("./software/fire8.mov")
 
 # Get FPS for proper playback speed
-fps = cap.get(cv2.CAP_PROP_FPS)
-delay = int(1000 / fps) if fps > 0 else 30
 
 while True:
     ret, frame = cap.read()
+    print("?")
     if not ret:
         break
-
+    
+    print("?")
     # Resize for performance (optional)
-    frame = cv2.resize(frame, (640, 480))
 
     # Convert to HSV
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -22,13 +21,14 @@ while True:
     # Smooth image to reduce noise
     blurred = cv2.GaussianBlur(hsv, (5, 5), 0)
 
+    print("?")
     # Fire color range (tuned)
-    lower_fire = np.array([14, 40, 40])
-    upper_fire = np.array([40, 255, 255])
+    lower_fire = np.array([0, 10, 200])     # Includes low saturation flames
+    upper_fire = np.array([50, 150, 255])   # Up to bright yellow flames
 
     # Create mask
     mask = cv2.inRange(blurred, lower_fire, upper_fire)
-
+    print("?")
     # Morphological operations to clean noise
     kernel = np.ones((3, 3), np.uint8)
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
@@ -36,10 +36,10 @@ while True:
 
     # Find fire contours
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
+    print("?")
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 300:
+        if area > 50:
             # Bounding box
             x, y, w, h = cv2.boundingRect(cnt)
             center_x = x + w // 2
@@ -74,7 +74,7 @@ while True:
     cv2.imshow("Fire Detection", frame)
 
     # Quit on 'q'
-    if cv2.waitKey(delay) & 0xFF == ord('q'):
+    if cv2.waitKey(20) & 0xFF == ord('q'):
         break
 
 # Release and cleanup
