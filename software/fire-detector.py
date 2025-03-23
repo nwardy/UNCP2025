@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Load video
-cap = cv2.VideoCapture("./software/fire8.mov")
+cap = cv2.VideoCapture("./software/fire7.mov")
 
 # Get FPS for proper playback speed
 
@@ -23,7 +23,7 @@ while True:
 
     print("?")
     # Fire color range (tuned)
-    lower_fire = np.array([0, 10, 200])     # Includes low saturation flames
+    lower_fire = np.array([0, 20, 230])     # Includes low saturation flames
     upper_fire = np.array([50, 150, 255])   # Up to bright yellow flames
 
     # Create mask
@@ -39,7 +39,7 @@ while True:
     print("?")
     for cnt in contours:
         area = cv2.contourArea(cnt)
-        if area > 50:
+        if area > 150:
             # Bounding box
             x, y, w, h = cv2.boundingRect(cnt)
             center_x = x + w // 2
