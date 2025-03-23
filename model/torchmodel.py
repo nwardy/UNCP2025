@@ -1,67 +1,63 @@
 import cv2
-import torch
 import numpy as np
 
-# Load a pre-trained YOLOv5 model.
-# For fire detection, you might have custom weights trained on fire images.
-# For example, if you have custom weights, replace 'yolov5s' with 'custom'
-# and provide the path to your weights file.
-# model = torch.hub.load('ultralytics/yolov5', 'custom', path='path/to/fire_weights.pt')
-model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
-model.eval()  # set to evaluation mode
-
-# Define thresholds.
-SMALL_BBOX_THRESHOLD = 0.02  # Only consider detections with bbox area < 1% of frame area.
-ORANGE_PIXEL_THRESHOLD = 0.1  # At least 20% of the ROI pixels should be orange.
-
-# Video file path.
-video_path = "software/fire6.mov"  # Replace with your video file path.
+video_path = "software/IMG_1240 (1).mov"
 cap = cv2.VideoCapture(video_path)
 
 if not cap.isOpened():
     print("Error opening video file")
     exit()
 
-while cap.isOpened():
+while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    # Run inference on the current frame.
-    results = model(frame)
-    # results.xyxy[0] contains detections as [x1, y1, x2, y2, confidence, class]
-    detections = results.xyxy[0]
-    frame_area = frame.shape[0] * frame.shape[1]
+    # Convert the frame from BGR to HSV for color thresholding
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
-    for *box, conf, cls in detections:
-        x1, y1, x2, y2 = map(int, box)
-        bbox_area = (x2 - x1) * (y2 - y1)
-        relative_area = bbox_area / frame_area
+    # Refined color range for a bright orange/yellow flame
+    # Adjust as necessary if your flame is more reddish or more yellowish
+    lower_orange = np.array([20, 90, 180])   # e.g., [10, 150, 150]
+    upper_orange = np.array([25, 180, 255])   # e.g., [25, 255, 255]
 
-        # Only process detections with very small bounding box area.
-        if relative_area < SMALL_BBOX_THRESHOLD:
-            # Extract the region of interest (ROI).
-            roi = frame[y1:y2, x1:x2]
-            if roi.size == 0:
-                continue  # Skip if ROI is empty.
+    # Create a binary mask
+    mask = cv2.inRange(hsv, lower_orange, upper_orange)
 
-            # Convert ROI to HSV for color detection.
-            hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-            # Define an HSV range for a typical orange fire color.
-            lower_orange = np.array([5, 100, 100])
-            upper_orange = np.array([15, 255, 255])
-            mask = cv2.inRange(hsv_roi, lower_orange, upper_orange)
-            orange_ratio = cv2.countNonZero(mask) / (roi.shape[0] * roi.shape[1] + 1e-5)
+    # Optional: Clean up noise in the mask with morphological operations
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
 
-            # Only draw detection if enough of the ROI is orange.
-            if orange_ratio > ORANGE_PIXEL_THRESHOLD:
-                # Draw bounding box and label in an orange color (BGR: 0,165,255).
-                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 165, 255), 2)
-                label = f"Fire: {conf:.2f}"
-                cv2.putText(frame, label, (x1, y1 - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
+    # Find contours in the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    cv2.imshow("Fire Detection", frame)
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        # Filter out very small contours so random noise isn't counted as fire
+        if area < 20:
+            continue
+
+        x, y, w, h = cv2.boundingRect(contour)
+
+        # Crop the region of interest in HSV
+        roi_hsv = hsv[y:y+h, x:x+w]
+        if roi_hsv.size == 0:
+            continue
+
+        # Calculate the average brightness (V channel) in the ROI
+        avg_brightness = np.mean(roi_hsv[:, :, 2])
+
+        # Only proceed if the region is bright enough
+        # (tweak 130-160 range depending on lighting conditions)
+        if avg_brightness < 150:
+            continue
+
+        # Draw a bounding box around the detected region
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 165, 255), 2)
+        cv2.putText(frame, "Fire", (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 165, 255), 2)
+
+    cv2.imshow("Small Flame Detection", frame)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
