@@ -13,7 +13,7 @@ from adafruit_motor import stepper
 kit = MotorKit()
 
 # Separate MotorKit for water pump control (update address if needed)
-pump_kit = MotorKit(address=0x61)
+pump_kit = MotorKit(address=0xA0)
 
 ############################################
 # 2. Define DC Motor (Wheel) Control Functions for Two-Wheel Drive
