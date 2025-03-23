@@ -149,14 +149,15 @@ while True:
 
         if avg_fire_y < frame_center_y - tolerance:
             print("Moving pitch up")
-            for _ in range(5):
+            # Increase steps per frame and reduce delay for faster pitch movement
+            for _ in range(7):
                 kit.stepper1.onestep(direction=stepper.FORWARD, style=stepper.DOUBLE)
-                time.sleep(0.01)
+                time.sleep(0.005)
         elif avg_fire_y > frame_center_y + tolerance:
             print("Moving pitch down")
-            for _ in range(5):
+            for _ in range(7):
                 kit.stepper1.onestep(direction=stepper.BACKWARD, style=stepper.DOUBLE)
-                time.sleep(0.01)
+                time.sleep(0.005)
     
     ############################################
     # 6. DC Motor (Wheel) Control for Chassis Spinning
