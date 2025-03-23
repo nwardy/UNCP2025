@@ -73,8 +73,13 @@ def activate_water_pump(duration, throttle=1.0):
 ############################################
 
 # Open the video file
-cap = cv2.VideoCapture("./software/fire7.mov")
+cap = cv2.VideoCapture(0)
 
+if not cap.isOpened():
+    print("Error: Could not open video stream.")
+    exit()
+
+    
 # Variables for tracking fire stability
 prev_fire_center = None       # Tuple (avg_x, avg_y) of previous frame's fire center
 fire_stable_start_time = None # Time when the fire was first detected as stable
